@@ -1,0 +1,10 @@
+{
+  "appId": "com.automanage.app",
+  "appName": "AutoManageVM",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
+  }
+}
