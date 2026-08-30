@@ -1,7 +1,7 @@
 {
   "appId": "com.automanage.app",
   "appName": "AutoManageVM",
-  "webDir": "dist",
+  "webDir": "dist/AutoManageVM/browser', 
   "plugins": {
     "SplashScreen": {
       "launchAutoHide": false
