@@ -5,10 +5,5 @@
   "server": {
     "url": "https://automanagevm.onhercules.app",
     "cleartext": true
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchAutoHide": false
-    }
   }
 }
