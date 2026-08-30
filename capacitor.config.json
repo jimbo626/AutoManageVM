@@ -1,13 +1,14 @@
-import { CapacitorConfig } from '@capacitor/cli';
-
-const config: CapacitorConfig = {
-  appId: 'com.yourcompany.automanagevm',
-  appName: 'AutoManageVM',
-  webDir: 'www',
-  server: {
-    url: 'https://automanagevm.onhercules.app', // <--- Your hosted live site
-    cleartext: false
+{
+  "appId": "com.automanage.app",
+  "appName": "AutoManageVM",
+  "webDir": "dist",
+  "server": {
+    "url": "https://automanagevm.onhercules.app",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
   }
-};
-
-export default config;
+}
