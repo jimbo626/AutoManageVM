@@ -1,14 +1,17 @@
-{
-  "appId": "com.automanage.app",
-  "appName": "AutoManageVM",
-  "webDir": "dist",
-  "server": {
-    "url": "https://automanagevm.onhercules.app",
-    "cleartext": true
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchAutoHide": false
-    }
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.yourcompany.automanagevm', // Replace with your exact App ID
+  appName: 'AutoManageVM',
+  webDir: 'www',
+  server: {
+    url: 'https://automanagevm.onhercules.app',
+    cleartext: false,
+    allowNavigation: [
+      'automanagevm.onhercules.app',
+      '*.onhercules.app'
+    ]
   }
-}
+};
+
+export default config;
