@@ -4,6 +4,12 @@
   "webDir": "dist",
   "server": {
     "url": "https://automanagevm.onhercules.app",
-    "cleartext": true
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
   }
+}
 }
