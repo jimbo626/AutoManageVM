@@ -2,14 +2,9 @@
   "appId": "com.automanage.app",
   "appName": "AutoManageVM",
   "webDir": "dist",
-  "server": {
-    "url": "https://automanagevm.onhercules.app",
-    "cleartext": false
-  },
   "plugins": {
     "SplashScreen": {
       "launchAutoHide": false
     }
   }
-}
 }
