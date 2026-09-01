@@ -69,6 +69,12 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires access to your photo library to select photos.</string>
 	<key>NSAppTransportSecurity</key>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>AutoManageVM uses the microphone for voice-to-text in the AI Virtual Manager</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>AutoManageVM uses the microphone for voice-to-text in the AI Virtual Manager.</string>
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>AutoManageVM uses speech recognition to convert your voice to text for the AI Virtual Manager.</string>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
