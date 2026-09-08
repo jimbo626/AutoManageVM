@@ -7,7 +7,7 @@ export class LandingPage {
     container.innerHTML = `
       <div style="
         min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -21,19 +21,21 @@ export class LandingPage {
           padding: 40px;
           max-width: 400px;
           width: 100%;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         ">
           <h1 style="
             text-align: center;
-            color: #333;
+            color: #1e3a8a;
             margin: 0 0 10px 0;
             font-size: 28px;
+            font-weight: 700;
           ">AutoManageVM</h1>
           
           <p style="
             text-align: center;
-            color: #666;
+            color: #64748b;
             margin: 0 0 30px 0;
+            font-size: 14px;
           ">Sales Management Platform</p>
 
           <form id="auth-form" style="display: flex; flex-direction: column; gap: 15px;">
@@ -41,13 +43,14 @@ export class LandingPage {
               <label style="
                 display: block;
                 margin-bottom: 8px;
-                color: #333;
-                font-weight: 500;
-              ">Email</label>
-              <input type="email" id="email" placeholder="your@email.com" required style="
+                color: #1e3a8a;
+                font-weight: 600;
+                font-size: 14px;
+              ">Username</label>
+              <input type="text" id="username" placeholder="Enter username" required style="
                 width: 100%;
                 padding: 12px;
-                border: 1px solid #ddd;
+                border: 1px solid #cbd5e1;
                 border-radius: 8px;
                 font-size: 16px;
                 box-sizing: border-box;
@@ -58,13 +61,32 @@ export class LandingPage {
               <label style="
                 display: block;
                 margin-bottom: 8px;
-                color: #333;
-                font-weight: 500;
+                color: #1e3a8a;
+                font-weight: 600;
+                font-size: 14px;
+              ">Email</label>
+              <input type="email" id="email" placeholder="your@email.com" required style="
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                font-size: 16px;
+                box-sizing: border-box;
+              " />
+            </div>
+
+            <div>
+              <label style="
+                display: block;
+                margin-bottom: 8px;
+                color: #1e3a8a;
+                font-weight: 600;
+                font-size: 14px;
               ">Password</label>
               <input type="password" id="password" placeholder="••••••••" required style="
                 width: 100%;
                 padding: 12px;
-                border: 1px solid #ddd;
+                border: 1px solid #cbd5e1;
                 border-radius: 8px;
                 font-size: 16px;
                 box-sizing: border-box;
@@ -73,12 +95,12 @@ export class LandingPage {
 
             <button type="submit" style="
               padding: 12px;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
               color: white;
               border: none;
               border-radius: 8px;
               font-size: 16px;
-              font-weight: bold;
+              font-weight: 600;
               cursor: pointer;
               transition: opacity 0.3s;
             ">Sign In</button>
@@ -87,14 +109,14 @@ export class LandingPage {
           <div style="
             text-align: center;
             margin-top: 20px;
-            color: #666;
+            color: #64748b;
             font-size: 14px;
           ">
             Don't have an account? 
-            <a href="#" onclick="alert('Sign up coming soon'); return false;" style="
-              color: #667eea;
+            <a href="#" onclick="window.location.hash = '/subscribe'; return false;" style="
+              color: #1e3a8a;
               text-decoration: none;
-              font-weight: bold;
+              font-weight: 600;
             ">Sign up</a>
           </div>
         </div>
@@ -104,8 +126,9 @@ export class LandingPage {
     const form = container.querySelector('#auth-form');
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      const username = container.querySelector('#username').value;
       const email = container.querySelector('#email').value;
-      console.log('Login attempt:', email);
+      console.log('Login attempt:', { username, email });
       this.router.navigate('/subscribe');
     });
   }
