@@ -5,7 +5,7 @@ const PLANS = [
     id: 'monthly',
     productId: 'com.automanagevm.subscription',
     name: 'Monthly',
-    price: '$9.99',
+    price: '$29.00',
     period: '/month',
     description: 'Perfect for getting started',
     features: [
@@ -16,18 +16,18 @@ const PLANS = [
     ],
   },
   {
-    id: 'annual',
+    id: '60day',
     productId: 'com.automanagevm.60day',
-    name: 'Annual',
-    price: '$79.99',
-    period: '/year',
-    description: 'Best value - Save 33%',
+    name: '60-Day Access',
+    price: '$49.00',
+    period: 'one time',
+    description: 'Full access for 60 days',
     features: [
-      'Everything in Monthly',
-      'Priority support',
-      'Advanced analytics',
-      'Team management',
-      'API access',
+      'Unlimited leads',
+      'Sales automation',
+      'Performance tracking',
+      'Email support',
+      '60 days of access',
     ],
     featured: true,
   },
@@ -86,7 +86,7 @@ export class SubscribePage {
                 ${plan.featured ? '<div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #667eea; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">Most Popular</div>' : ''}
 
                 <h2 style="margin: 0 0 20px 0; color: #333;">${plan.name}</h2>
-                
+
                 <div style="margin: 20px 0; display: flex; align-items: baseline; gap: 4px;">
                   <span style="font-size: 36px; font-weight: bold; color: #333;">${plan.price}</span>
                   <span style="font-size: 16px; color: #666;">${plan.period}</span>
