@@ -1,25 +1,32 @@
 {
-  "appId": "com.automanage.app",
-  "appName": "AutoManageVM",
-  "webDir": "dist",
-  "server": {
-    "url": "https://automanagevm.app",
-    "cleartext": false,
-    "allowNavigation": [
-      "*.hercules-auth.com",
-      "hercules-auth.com",
-      "*.auth.onhercules.app",
-      "*.auth.hercules-app.com",
-      "hercules.app",
-      "auth.automanagevm.app"
-    ]
-  },
-  "ios": {
-    "appendUserAgent": "HerculesNative PWAShell"
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchAutoHide": true
-    }
-  }
+	"appId": "com.automanage.app",
+	"appName": "AutoManageVM",
+	"webDir": "dist",
+	"server": {
+		"url": "https://automanagevm.app",
+		"cleartext": false,
+		"allowNavigation": [
+			"*.hercules-auth.com",
+			"hercules-auth.com",
+			"*.auth.onhercules.app",
+			"*.auth.hercules-app.com",
+			"hercules.app",
+			"auth.automanagevm.app"
+		]
+	},
+	"ios": {
+		"appendUserAgent": "HerculesNative PWAShell"
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchAutoHide": true,
+			"launchShowDuration": 0,
+			"showSpinner": false
+		}
+	},
+	"packageClassList": [
+		"CAPCameraPlugin",
+		"SplashScreenPlugin",
+		"NativePurchasesPlugin"
+	]
 }
