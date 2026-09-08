@@ -19,7 +19,9 @@
   },
   "plugins": {
     "SplashScreen": {
-      "launchAutoHide": true
+      "launchAutoHide": true,
+      "launchShowDuration": 0,
+      "showSpinner": false
     }
   }
 }
