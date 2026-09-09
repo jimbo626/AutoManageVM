@@ -6,13 +6,15 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { iapBridge, type IAPResult, type IAPStatus } from '@/lib/iap-bridge';
+import { Capacitor } from '@capacitor/core';
+import { NativePurchases } from '@capgo/native-purchases';
+import type { IAPStatus } from '@/lib/iap-bridge';
 
 interface Plan {
   id: string;
-  productId: string;
+  productIds: string[];
   name: string;
   price: string;
   period: string;
@@ -24,9 +26,9 @@ interface Plan {
 const PLANS: Plan[] = [
   {
     id: 'monthly',
-    productId: 'com.automanagevm.subscription',
+    productIds: ['AMVsubscription', 'com.automanagevm.subscription'],
     name: 'Monthly',
-    price: '$9.99',
+    price: 'Loading...',
     period: '/month',
     description: 'Perfect for getting started',
     features: [
@@ -37,86 +39,169 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    id: 'annual',
-    productId: 'com.automanagevm.60day',
-    name: 'Annual',
-    price: '$79.99',
-    period: '/year',
-    description: 'Best value - Save 33%',
+    id: '60day',
+    productIds: ['AMV60day', 'com.automanagevm.60day'],
+    name: '60-Day Access',
+    price: 'Loading...',
+    period: 'one time',
+    description: 'Full access for 60 days',
     features: [
-      'Everything in Monthly',
-      'Priority support',
-      'Advanced analytics',
-      'Team management',
-      'API access',
+      'Unlimited leads',
+      'Sales automation',
+      'Performance tracking',
+      'Email support',
+      '60 days of access',
     ],
     featured: true,
   },
 ];
 
 const SHOPIFY_STORE = process.env.NEXT_PUBLIC_SHOPIFY_STORE || 'https://automanagevm.myshopify.com';
+const IAP_TIMEOUT_MS = 20000;
 
 export default function SubscribePage() {
   const router = useRouter();
-  const [isNative, setIsNative] = useState(false);
+  const [isNative, setIsNative] = useState(Capacitor.isNativePlatform());
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [plans, setPlans] = useState<Plan[]>(PLANS.map((plan) => ({ ...plan })));
+  const productMapRef = useRef<Map<string, string>>(new Map());
   const [status, setStatus] = useState<{
     type: IAPStatus;
     message: string;
   } | null>(null);
 
   useEffect(() => {
-    // Detect if in native mode
-    setIsNative(iapBridge.isNative());
-
-    // Subscribe to IAP results
-    const unsubscribe = iapBridge.subscribe((result: IAPResult) => {
-      setLoading(false);
-      setSelectedPlan(null);
-
-      if (result.status === 'success') {
-        setStatus({
-          type: 'success',
-          message: 'Purchase successful! Redirecting to dashboard...',
-        });
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
-      } else if (result.status === 'error') {
-        setStatus({
-          type: 'error',
-          message: result.message || 'Purchase failed. Please try again.',
-        });
-      } else if (result.status === 'cancelled') {
-        setStatus({
-          type: 'cancelled',
-          message: 'Purchase cancelled.',
-        });
-      }
-    });
-
-    return () => unsubscribe();
+    const userAgent = navigator.userAgent;
+    const platform = Capacitor.getPlatform();
+    setIsNative(Capacitor.isNativePlatform());
+    setIsIOSDevice(/iPhone|iPad|iPod/i.test(userAgent) || platform === 'ios');
   }, [router]);
 
-  const handleNativePurchase = async (productId: string) => {
+  const appleIAPOnly = isIOSDevice;
+  const canUseNativeIAP = appleIAPOnly && isNative;
+
+  useEffect(() => {
+    let cancelled = false;
+    const initializeIAP = async () => {
+      if (!canUseNativeIAP) {
+        return;
+      }
+
+      try {
+        await withTimeout(
+          NativePurchases.initialize(),
+          'Unable to initialize Apple In-App Purchase.'
+        );
+        const allProductIds = [...new Set(PLANS.flatMap((plan) => plan.productIds))];
+        const result = await withTimeout(
+          NativePurchases.getProducts({ products: allProductIds }),
+          'Unable to load App Store pricing.'
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const updatedPlans = PLANS.map((plan) => {
+          const appStoreProduct = result.products.find((product) =>
+            plan.productIds.includes(product.productId)
+          );
+          if (appStoreProduct) {
+            productMapRef.current.set(plan.id, appStoreProduct.productId);
+            return {
+              ...plan,
+              price: appStoreProduct.price || plan.price,
+            };
+          }
+          return {
+            ...plan,
+            price: 'Unavailable',
+          };
+        });
+        setPlans(updatedPlans);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+        setStatus({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Unable to load App Store products.',
+        });
+        setPlans(PLANS.map((plan) => ({ ...plan, price: 'Unavailable' })));
+      }
+    };
+
+    initializeIAP();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canUseNativeIAP]);
+
+  const withTimeout = async <T,>(
+    promise: Promise<T>,
+    timeoutMessage: string
+  ): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), IAP_TIMEOUT_MS);
+    });
+    try {
+      return (await Promise.race([promise, timeoutPromise])) as T;
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  };
+
+  const handleNativePurchase = async (planId: string) => {
     try {
       setLoading(true);
-      setSelectedPlan(productId);
+      setSelectedPlan(planId);
       setStatus(null);
-      await iapBridge.purchase(productId);
+
+      if (!canUseNativeIAP) {
+        throw new Error('In-app purchase is only available in the iOS app.');
+      }
+
+      const productId = productMapRef.current.get(planId);
+      if (!productId) {
+        throw new Error('This product is not available in App Store Connect.');
+      }
+
+      await withTimeout(
+        NativePurchases.purchase({ product: productId }),
+        'Purchase timed out. Please try again.'
+      );
+      setStatus({
+        type: 'success',
+        message: 'Purchase successful! Redirecting to dashboard...',
+      });
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
     } catch (error) {
-      setLoading(false);
       setStatus({
         type: 'error',
         message: error instanceof Error ? error.message : 'Purchase failed',
       });
+    } finally {
+      setLoading(false);
+      setSelectedPlan(null);
     }
   };
 
   const handleBrowserPurchase = (planId: string) => {
-    // In browser, redirect to Shopify
+    if (appleIAPOnly) {
+      setStatus({
+        type: 'error',
+        message: 'In-app purchase is only available in the iOS app.',
+      });
+      return;
+    }
     const shopifyUrl = `${SHOPIFY_STORE}/products/${planId}`;
     window.open(shopifyUrl, '_blank');
   };
@@ -125,13 +210,33 @@ export default function SubscribePage() {
     try {
       setLoading(true);
       setStatus(null);
-      await iapBridge.restore();
+
+      if (!canUseNativeIAP) {
+        throw new Error('Restore is only available in the iOS app.');
+      }
+
+      const restored = await withTimeout(
+        NativePurchases.restorePurchases(),
+        'Restore timed out. Please try again.'
+      );
+      if (restored && restored.length > 0) {
+        setStatus({
+          type: 'success',
+          message: 'Previous purchases restored.',
+        });
+      } else {
+        setStatus({
+          type: 'cancelled',
+          message: 'No previous purchases were found for this Apple ID.',
+        });
+      }
     } catch (error) {
-      setLoading(false);
       setStatus({
         type: 'error',
         message: error instanceof Error ? error.message : 'Restore failed',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,7 +254,7 @@ export default function SubscribePage() {
       )}
 
       <div style={styles.plansGrid}>
-        {PLANS.map((plan) => (
+        {plans.map((plan) => (
           <div
             key={plan.id}
             style={{
@@ -177,18 +282,18 @@ export default function SubscribePage() {
               ))}
             </ul>
 
-            {isNative ? (
+            {appleIAPOnly ? (
               <button
                 style={{
                   ...styles.button,
-                  ...(loading && selectedPlan === plan.productId
+                  ...(loading && selectedPlan === plan.id
                     ? styles.loading
                     : {}),
                 }}
-                onClick={() => handleNativePurchase(plan.productId)}
-                disabled={loading}
+                onClick={() => handleNativePurchase(plan.id)}
+                disabled={loading || !canUseNativeIAP}
               >
-                {loading && selectedPlan === plan.productId
+                {loading && selectedPlan === plan.id
                   ? 'Processing...'
                   : 'Subscribe Now'}
               </button>
@@ -204,7 +309,7 @@ export default function SubscribePage() {
         ))}
       </div>
 
-      {isNative && (
+      {appleIAPOnly && (
         <div style={styles.restoreSection}>
           <button
             style={styles.restoreButton}

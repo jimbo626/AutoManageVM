@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "89UG4H5N4V.com.automanage.app",
+        "paths": [
+          "/",
+          "/subscribe",
+          "/login*",
+          "/auth/*",
+          "/verify*"
+        ]
+      }
+    ]
+  }
+}
