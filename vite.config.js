@@ -1,10 +1,14 @@
-export default {
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  root: './src',
   build: {
-    outDir: 'dist',
+    outDir: '../dist',
+    emptyOutDir: true,
   },
   server: {
     port: 5173,
     host: '0.0.0.0',
     middlewareMode: false,
   },
-}
+});

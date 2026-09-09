@@ -1,11 +1,12 @@
-import { iapBridge } from '../lib/iap-bridge.js';
+import { Capacitor } from '@capacitor/core';
+import { NativePurchases } from '@capgo/native-purchases';
 
 const PLANS = [
   {
     id: 'monthly',
-    productId: 'com.automanagevm.subscription',
+    productIds: ['AMVsubscription', 'com.automanagevm.subscription'],
     name: 'Monthly',
-    price: '$29.00',
+    price: 'Loading...',
     period: '/month',
     description: 'Perfect for getting started',
     features: [
@@ -17,9 +18,9 @@ const PLANS = [
   },
   {
     id: '60day',
-    productId: 'com.automanagevm.60day',
+    productIds: ['AMV60day', 'com.automanagevm.60day'],
     name: '60-Day Access',
-    price: '$49.00',
+    price: 'Loading...',
     period: 'one time',
     description: 'Full access for 60 days',
     features: [
@@ -34,14 +35,20 @@ const PLANS = [
 ];
 
 const SHOPIFY_STORE = 'https://automanagevm.myshopify.com';
+const IAP_TIMEOUT_MS = 20000;
 
 export class SubscribePage {
   constructor(router) {
     this.router = router;
-    this.isNative = iapBridge.isNative();
+    this.platform = Capacitor.getPlatform();
+    this.isNative = Capacitor.isNativePlatform();
+    this.isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent) || this.platform === 'ios';
+    this.appleIAPOnly = this.isIOSDevice;
+    this.canUseNativeIAP = this.appleIAPOnly && this.isNative;
     this.loading = false;
     this.selectedPlan = null;
-    this.unsubscribe = null;
+    this.plans = PLANS.map(plan => ({ ...plan }));
+    this.purchaseProductsByPlan = new Map();
   }
 
   render(container) {
@@ -73,7 +80,7 @@ export class SubscribePage {
             gap: 30px;
             margin-bottom: 60px;
           ">
-            ${PLANS.map(plan => `
+            ${this.plans.map(plan => `
               <div style="
                 background: white;
                 border-radius: 12px;
@@ -88,7 +95,7 @@ export class SubscribePage {
                 <h2 style="margin: 0 0 20px 0; color: #333;">${plan.name}</h2>
 
                 <div style="margin: 20px 0; display: flex; align-items: baseline; gap: 4px;">
-                  <span style="font-size: 36px; font-weight: bold; color: #333;">${plan.price}</span>
+                  <span data-plan-price="${plan.id}" style="font-size: 36px; font-weight: bold; color: #333;">${plan.price}</span>
                   <span style="font-size: 16px; color: #666;">${plan.period}</span>
                 </div>
 
@@ -102,7 +109,7 @@ export class SubscribePage {
                   `).join('')}
                 </ul>
 
-                <button class="plan-btn" data-product-id="${plan.productId}" style="
+                <button class="plan-btn" data-plan-id="${plan.id}" style="
                   width: 100%;
                   padding: 12px 24px;
                   background: #667eea;
@@ -113,14 +120,15 @@ export class SubscribePage {
                   font-weight: bold;
                   cursor: pointer;
                   transition: background 0.3s ease;
+                  ${this.appleIAPOnly && !this.canUseNativeIAP ? 'opacity: 0.6; cursor: not-allowed;' : ''}
                 ">
-                  ${this.isNative ? 'Subscribe Now' : 'Buy on Shopify'}
+                  ${this.appleIAPOnly ? 'Subscribe Now' : 'Buy on Shopify'}
                 </button>
               </div>
             `).join('')}
           </div>
 
-          ${this.isNative ? `
+          ${this.appleIAPOnly ? `
             <div style="text-align: center; margin-top: 40px;">
               <button id="restore-btn" style="
                 background: transparent;
@@ -146,18 +154,27 @@ export class SubscribePage {
     `;
 
     this.setupEventListeners(container);
+    this.initializeIAP(container);
   }
 
   setupEventListeners(container) {
     const planButtons = container.querySelectorAll('.plan-btn');
     planButtons.forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const productId = e.target.dataset.productId;
-        if (this.isNative) {
-          this.handleNativePurchase(productId, container);
-        } else {
-          this.handleBrowserPurchase(productId);
+        const planId = e.target.dataset.planId;
+        if (this.appleIAPOnly) {
+          if (!this.canUseNativeIAP) {
+            this.showAlert(container, {
+              status: 'error',
+              message: 'In-app purchase is only available in the iOS app.',
+            });
+            return;
+          }
+          this.handleNativePurchase(planId, container);
+          return;
         }
+
+        this.handleBrowserPurchase(planId);
       });
     });
 
@@ -168,24 +185,88 @@ export class SubscribePage {
       });
     }
 
-    this.unsubscribe = iapBridge.subscribe((result) => {
-      this.loading = false;
-      this.selectedPlan = null;
-      this.showAlert(container, result);
+    if (this.appleIAPOnly && !this.canUseNativeIAP) {
+      this.showAlert(container, {
+        status: 'error',
+        message: 'Open this page inside the iOS app to subscribe with Apple In-App Purchase.',
+      });
+    }
+  }
+
+  async initializeIAP(container) {
+    if (!this.canUseNativeIAP) {
+      this.updatePlanPrices(container);
+      return;
+    }
+
+    try {
+      await this.withTimeout(NativePurchases.initialize(), 'Unable to initialize Apple In-App Purchase.');
+      const allProductIds = [...new Set(this.plans.flatMap((plan) => plan.productIds))];
+      const result = await this.withTimeout(
+        NativePurchases.getProducts({ products: allProductIds }),
+        'Unable to load App Store pricing.'
+      );
+
+      for (const plan of this.plans) {
+        const appStoreProduct = result.products.find((product) =>
+          plan.productIds.includes(product.productId)
+        );
+
+        if (appStoreProduct) {
+          this.purchaseProductsByPlan.set(plan.id, appStoreProduct.productId);
+          plan.price = appStoreProduct.price || plan.price;
+        } else {
+          plan.price = 'Unavailable';
+        }
+      }
+    } catch (error) {
+      this.showAlert(container, {
+        status: 'error',
+        message: error.message || 'Unable to load App Store products.',
+      });
+      this.plans.forEach((plan) => {
+        plan.price = 'Unavailable';
+      });
+    }
+
+    this.updatePlanPrices(container);
+  }
+
+  updatePlanPrices(container) {
+    this.plans.forEach((plan) => {
+      const priceElement = container.querySelector(`[data-plan-price="${plan.id}"]`);
+      if (priceElement) {
+        priceElement.textContent = plan.price;
+      }
     });
   }
 
-  async handleNativePurchase(productId, container) {
+  async handleNativePurchase(planId, container) {
     try {
       this.loading = true;
-      this.selectedPlan = productId;
-      await iapBridge.purchase(productId);
+      this.selectedPlan = planId;
+
+      const productId = this.purchaseProductsByPlan.get(planId);
+      if (!productId) {
+        throw new Error('This product is not available in App Store Connect.');
+      }
+
+      await this.withTimeout(
+        NativePurchases.purchase({ product: productId }),
+        'Purchase timed out. Please try again.'
+      );
+
+      this.showAlert(container, {
+        status: 'success',
+      });
     } catch (error) {
-      this.loading = false;
       this.showAlert(container, {
         status: 'error',
         message: error.message || 'Purchase failed',
       });
+    } finally {
+      this.loading = false;
+      this.selectedPlan = null;
     }
   }
 
@@ -197,14 +278,43 @@ export class SubscribePage {
   async handleRestore(container) {
     try {
       this.loading = true;
-      await iapBridge.restore();
+      if (!this.canUseNativeIAP) {
+        throw new Error('Restore is only available in the iOS app.');
+      }
+
+      const restored = await this.withTimeout(
+        NativePurchases.restorePurchases(),
+        'Restore timed out. Please try again.'
+      );
+
+      if (restored && restored.length > 0) {
+        this.showAlert(container, {
+          status: 'success',
+          message: 'Previous purchases restored.',
+          noRedirect: true,
+        });
+      } else {
+        this.showAlert(container, {
+          status: 'cancelled',
+          message: 'No previous purchases were found for this Apple ID.',
+          noRedirect: true,
+        });
+      }
     } catch (error) {
-      this.loading = false;
       this.showAlert(container, {
         status: 'error',
         message: error.message || 'Restore failed',
       });
+    } finally {
+      this.loading = false;
     }
+  }
+
+  withTimeout(promise, timeoutMessage) {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(timeoutMessage)), IAP_TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeoutPromise]);
   }
 
   showAlert(container, result) {
@@ -213,20 +323,22 @@ export class SubscribePage {
     let bgColor = '';
 
     if (result.status === 'success') {
-      message = 'Purchase successful! Redirecting to dashboard...';
+      message = result.message || 'Purchase successful! Redirecting to dashboard...';
       bgColor = '#d4edda';
       alertDiv.style.color = '#155724';
       alertDiv.style.borderLeft = '4px solid #28a745';
-      setTimeout(() => {
-        this.router.navigate('/dashboard');
-      }, 2000);
+      if (!result.noRedirect) {
+        setTimeout(() => {
+          this.router.navigate('/dashboard');
+        }, 2000);
+      }
     } else if (result.status === 'error') {
       message = result.message || 'Purchase failed. Please try again.';
       bgColor = '#f8d7da';
       alertDiv.style.color = '#721c24';
       alertDiv.style.borderLeft = '4px solid #f5c6cb';
     } else if (result.status === 'cancelled') {
-      message = 'Purchase cancelled.';
+      message = result.message || 'Purchase cancelled.';
       bgColor = '#fff3cd';
       alertDiv.style.color = '#856404';
       alertDiv.style.borderLeft = '4px solid #ffc107';
@@ -237,9 +349,5 @@ export class SubscribePage {
     alertDiv.style.display = 'block';
   }
 
-  destroy() {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-    }
-  }
+  destroy() {}
 }
