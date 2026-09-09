@@ -11,7 +11,9 @@
 			"*.auth.onhercules.app",
 			"*.auth.hercules-app.com",
 			"hercules.app",
-			"auth.automanagevm.app"
+			"auth.automanagevm.app",
+			"01kx8x9r368pa925xtce1vqvsy.hercules-auth.com",
+			"rugged-lyrebird-259.convex.site"
 		]
 	},
 	"ios": {

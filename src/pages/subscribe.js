@@ -1,11 +1,12 @@
-import { iapBridge } from '../lib/iap-bridge.js';
+import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
+import { RECEIPT_VERIFICATION_URL } from '../config.js';
 
 const PLANS = [
   {
     id: 'monthly',
-    productId: 'com.automanagevm.subscription',
+    productId: 'AMVsubscription',
     name: 'Monthly',
-    price: '$29.00',
+    price: 'Loading price…',
     period: '/month',
     description: 'Perfect for getting started',
     features: [
@@ -17,9 +18,9 @@ const PLANS = [
   },
   {
     id: '60day',
-    productId: 'com.automanagevm.60day',
+    productId: 'AMV60day',
     name: '60-Day Access',
-    price: '$49.00',
+    price: 'Loading price…',
     period: 'one time',
     description: 'Full access for 60 days',
     features: [
@@ -38,10 +39,10 @@ const SHOPIFY_STORE = 'https://automanagevm.myshopify.com';
 export class SubscribePage {
   constructor(router) {
     this.router = router;
-    this.isNative = iapBridge.isNative();
+    this.isNative = window.Capacitor?.isNativePlatform?.() ?? false;
     this.loading = false;
     this.selectedPlan = null;
-    this.unsubscribe = null;
+    this.products = new Map();
   }
 
   render(container) {
@@ -88,7 +89,7 @@ export class SubscribePage {
                 <h2 style="margin: 0 0 20px 0; color: #333;">${plan.name}</h2>
 
                 <div style="margin: 20px 0; display: flex; align-items: baseline; gap: 4px;">
-                  <span style="font-size: 36px; font-weight: bold; color: #333;">${plan.price}</span>
+                  <span data-price-id="${plan.productId}" style="font-size: 36px; font-weight: bold; color: #333;">${plan.price}</span>
                   <span style="font-size: 16px; color: #666;">${plan.period}</span>
                 </div>
 
@@ -146,6 +147,24 @@ export class SubscribePage {
     `;
 
     this.setupEventListeners(container);
+    if (this.isNative) {
+      this.loadProducts(container);
+    }
+  }
+
+  async loadProducts(container) {
+    try {
+      const { products } = await NativePurchases.getProducts({
+        productIdentifiers: PLANS.map(plan => plan.productId),
+      });
+      products.forEach(product => this.products.set(product.identifier, product));
+      products.forEach(product => {
+        const price = container.querySelector(`[data-price-id="${product.identifier}"]`);
+        if (price) price.textContent = product.priceString || product.price || '';
+      });
+    } catch (error) {
+      this.showAlert(container, { status: 'error', message: 'Unable to load Apple purchase options.' });
+    }
   }
 
   setupEventListeners(container) {
@@ -168,18 +187,19 @@ export class SubscribePage {
       });
     }
 
-    this.unsubscribe = iapBridge.subscribe((result) => {
-      this.loading = false;
-      this.selectedPlan = null;
-      this.showAlert(container, result);
-    });
   }
 
   async handleNativePurchase(productId, container) {
     try {
       this.loading = true;
       this.selectedPlan = productId;
-      await iapBridge.purchase(productId);
+      const plan = PLANS.find(item => item.productId === productId);
+      const transaction = await NativePurchases.purchaseProduct({
+        productIdentifier: productId,
+        productType: plan?.id === '60day' ? PURCHASE_TYPE.INAPP : PURCHASE_TYPE.SUBS,
+      });
+      await this.verifyPurchase(transaction, productId);
+      this.showAlert(container, { status: 'success' });
     } catch (error) {
       this.loading = false;
       this.showAlert(container, {
@@ -197,7 +217,11 @@ export class SubscribePage {
   async handleRestore(container) {
     try {
       this.loading = true;
-      await iapBridge.restore();
+      await NativePurchases.restorePurchases();
+      this.showAlert(container, {
+        status: 'restored',
+        message: 'Purchases restored. Your access will refresh shortly.',
+      });
     } catch (error) {
       this.loading = false;
       this.showAlert(container, {
@@ -213,6 +237,7 @@ export class SubscribePage {
     let bgColor = '';
 
     if (result.status === 'success') {
+      this.loading = false;
       message = 'Purchase successful! Redirecting to dashboard...';
       bgColor = '#d4edda';
       alertDiv.style.color = '#155724';
@@ -220,6 +245,12 @@ export class SubscribePage {
       setTimeout(() => {
         this.router.navigate('/dashboard');
       }, 2000);
+    } else if (result.status === 'restored') {
+      this.loading = false;
+      message = result.message;
+      bgColor = '#d4edda';
+      alertDiv.style.color = '#155724';
+      alertDiv.style.borderLeft = '4px solid #28a745';
     } else if (result.status === 'error') {
       message = result.message || 'Purchase failed. Please try again.';
       bgColor = '#f8d7da';
@@ -238,8 +269,20 @@ export class SubscribePage {
   }
 
   destroy() {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-    }
+  }
+
+  async verifyPurchase(transaction, productId) {
+    const response = await fetch(RECEIPT_VERIFICATION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId,
+        transactionId: transaction.transactionId,
+        receipt: transaction.receipt,
+        jwsRepresentation: transaction.jwsRepresentation,
+      }),
+    });
+    if (!response.ok) throw new Error('Hercules could not verify this purchase.');
+    return response.json();
   }
 }

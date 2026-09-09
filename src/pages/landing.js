@@ -1,3 +1,5 @@
+import { getAuthUrl } from '../config.js';
+
 export class LandingPage {
   constructor(router) {
     this.router = router;
@@ -38,73 +40,30 @@ export class LandingPage {
             font-size: 14px;
           ">Sales Management Platform</p>
 
-          <form id="auth-form" style="display: flex; flex-direction: column; gap: 15px;">
-            <div>
-              <label style="
-                display: block;
-                margin-bottom: 8px;
-                color: #1e3a8a;
-                font-weight: 600;
-                font-size: 14px;
-              ">Username</label>
-              <input type="text" id="username" placeholder="Enter username" required style="
-                width: 100%;
-                padding: 12px;
-                border: 1px solid #cbd5e1;
-                border-radius: 8px;
-                font-size: 16px;
-                box-sizing: border-box;
-              " />
-            </div>
-
-            <div>
-              <label style="
-                display: block;
-                margin-bottom: 8px;
-                color: #1e3a8a;
-                font-weight: 600;
-                font-size: 14px;
-              ">Email</label>
-              <input type="email" id="email" placeholder="your@email.com" required style="
-                width: 100%;
-                padding: 12px;
-                border: 1px solid #cbd5e1;
-                border-radius: 8px;
-                font-size: 16px;
-                box-sizing: border-box;
-              " />
-            </div>
-
-            <div>
-              <label style="
-                display: block;
-                margin-bottom: 8px;
-                color: #1e3a8a;
-                font-weight: 600;
-                font-size: 14px;
-              ">Password</label>
-              <input type="password" id="password" placeholder="••••••••" required style="
-                width: 100%;
-                padding: 12px;
-                border: 1px solid #cbd5e1;
-                border-radius: 8px;
-                font-size: 16px;
-                box-sizing: border-box;
-              " />
-            </div>
-
-            <button type="submit" style="
+          <div style="display: flex; flex-direction: column; gap: 15px;">
+            <a href="${getAuthUrl('login')}" style="
+              display: block;
+              text-align: center;
               padding: 12px;
               background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
               color: white;
-              border: none;
               border-radius: 8px;
               font-size: 16px;
               font-weight: 600;
-              cursor: pointer;
-              transition: opacity 0.3s;
-            ">Sign In</button>
-          </form>
+              text-decoration: none;
+            ">Sign In</a>
+            <a href="${getAuthUrl('signup')}" style="
+              display: block;
+              text-align: center;
+              padding: 12px;
+              border: 1px solid #1e3a8a;
+              color: #1e3a8a;
+              border-radius: 8px;
+              font-size: 16px;
+              font-weight: 600;
+              text-decoration: none;
+            ">Create account</a>
+          </div>
 
           <div style="
             text-align: center;
@@ -112,25 +71,12 @@ export class LandingPage {
             color: #64748b;
             font-size: 14px;
           ">
-            Don't have an account? 
-            <a href="#" onclick="window.location.hash = '/subscribe'; return false;" style="
-              color: #1e3a8a;
-              text-decoration: none;
-              font-weight: 600;
-            ">Sign up</a>
+            Sign in or create an account through Hercules Auth.
           </div>
         </div>
       </div>
     `;
 
-    const form = container.querySelector('#auth-form');
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const username = container.querySelector('#username').value;
-      const email = container.querySelector('#email').value;
-      console.log('Login attempt:', { username, email });
-      this.router.navigate('/subscribe');
-    });
   }
 
   destroy() {
