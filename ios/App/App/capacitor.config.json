@@ -3,6 +3,7 @@
 	"appName": "AutoManageVM",
 	"webDir": "dist",
 	"server": {
+		"url": "https://automanagevm.app",
 		"cleartext": false,
 		"allowNavigation": [
 			"*.hercules-auth.com",
