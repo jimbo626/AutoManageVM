@@ -26,7 +26,7 @@ const PLANS: Plan[] = [
     id: 'monthly',
     productId: 'com.automanagevm.subscription',
     name: 'Monthly',
-    price: '$9.99',
+    price: '$29.00',
     period: '/month',
     description: 'Perfect for getting started',
     features: [
@@ -37,12 +37,12 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    id: 'annual',
+    id: '60day',
     productId: 'com.automanagevm.60day',
-    name: 'Annual',
-    price: '$79.99',
-    period: '/year',
-    description: 'Best value - Save 33%',
+    name: '60-Day Access',
+    price: '$49.00',
+    period: 'one time',
+    description: 'Full access for 60 days',
     features: [
       'Everything in Monthly',
       'Priority support',

@@ -27,6 +27,8 @@ export interface IAPListener {
 class IAPBridge {
   private listeners: Set<IAPListener> = new Set();
   private isNativeMode = false;
+  private pendingTimeout: number | null = null;
+  private readonly actionTimeoutMs = 30000;
 
   constructor() {
     this.detectNativeMode();
@@ -50,9 +52,29 @@ class IAPBridge {
     window.addEventListener('message', (event: MessageEvent) => {
       const data = event.data as IAPResult;
       if (data?.type === 'iap_result') {
+        this.clearPendingTimeout();
         this.notifyListeners(data);
       }
     });
+  }
+
+  private clearPendingTimeout(): void {
+    if (this.pendingTimeout !== null) {
+      window.clearTimeout(this.pendingTimeout);
+      this.pendingTimeout = null;
+    }
+  }
+
+  private startActionTimeout(action: IAPAction): void {
+    this.clearPendingTimeout();
+    this.pendingTimeout = window.setTimeout(() => {
+      this.pendingTimeout = null;
+      this.notifyListeners({
+        type: 'iap_result',
+        status: 'error',
+        message: `Purchase ${action} timed out. Please try again.`,
+      });
+    }, this.actionTimeoutMs);
   }
 
   /**
@@ -70,12 +92,16 @@ class IAPBridge {
     if (!this.isNative()) {
       throw new Error('Not in native mode');
     }
+    if (!(window as any).webkit?.messageHandlers?.iap) {
+      throw new Error('Native purchase handler unavailable');
+    }
 
     const message: IAPMessage = {
       action: 'purchase',
       productId,
     };
 
+    this.startActionTimeout('purchase');
     (window as any).webkit.messageHandlers.iap.postMessage(message);
   }
 
@@ -86,11 +112,15 @@ class IAPBridge {
     if (!this.isNative()) {
       throw new Error('Not in native mode');
     }
+    if (!(window as any).webkit?.messageHandlers?.iap) {
+      throw new Error('Native purchase handler unavailable');
+    }
 
     const message: IAPMessage = {
       action: 'restore',
     };
 
+    this.startActionTimeout('restore');
     (window as any).webkit.messageHandlers.iap.postMessage(message);
   }
 
