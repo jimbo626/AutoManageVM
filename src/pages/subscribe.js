@@ -291,11 +291,13 @@ export class SubscribePage {
         this.showAlert(container, {
           status: 'success',
           message: 'Previous purchases restored.',
+          noRedirect: true,
         });
       } else {
         this.showAlert(container, {
           status: 'cancelled',
           message: 'No previous purchases were found for this Apple ID.',
+          noRedirect: true,
         });
       }
     } catch (error) {
@@ -321,20 +323,22 @@ export class SubscribePage {
     let bgColor = '';
 
     if (result.status === 'success') {
-      message = 'Purchase successful! Redirecting to dashboard...';
+      message = result.message || 'Purchase successful! Redirecting to dashboard...';
       bgColor = '#d4edda';
       alertDiv.style.color = '#155724';
       alertDiv.style.borderLeft = '4px solid #28a745';
-      setTimeout(() => {
-        this.router.navigate('/dashboard');
-      }, 2000);
+      if (!result.noRedirect) {
+        setTimeout(() => {
+          this.router.navigate('/dashboard');
+        }, 2000);
+      }
     } else if (result.status === 'error') {
       message = result.message || 'Purchase failed. Please try again.';
       bgColor = '#f8d7da';
       alertDiv.style.color = '#721c24';
       alertDiv.style.borderLeft = '4px solid #f5c6cb';
     } else if (result.status === 'cancelled') {
-      message = 'Purchase cancelled.';
+      message = result.message || 'Purchase cancelled.';
       bgColor = '#fff3cd';
       alertDiv.style.color = '#856404';
       alertDiv.style.borderLeft = '4px solid #ffc107';
