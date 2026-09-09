@@ -28,7 +28,7 @@ const PLANS: Plan[] = [
     name: 'Monthly',
     price: '$29.00',
     period: '/month',
-    description: 'Perfect for getting started',
+    description: 'Recurring monthly access with full features',
     features: [
       'Unlimited leads',
       'Sales automation',
@@ -42,7 +42,7 @@ const PLANS: Plan[] = [
     name: '60-Day Access',
     price: '$49.00',
     period: 'one time',
-    description: 'Full access for 60 days',
+    description: 'One-time purchase for 60 days (no auto-renew)',
     features: [
       'Everything in Monthly',
       'Priority support',
@@ -118,7 +118,7 @@ export default function SubscribePage() {
   const handleBrowserPurchase = (planId: string) => {
     // In browser, redirect to Shopify
     const shopifyUrl = `${SHOPIFY_STORE}/products/${planId}`;
-    window.open(shopifyUrl, '_blank');
+    window.location.href = shopifyUrl;
   };
 
   const handleRestore = async () => {

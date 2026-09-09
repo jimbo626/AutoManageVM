@@ -37,12 +37,11 @@ class IAPBridge {
 
   /**
    * Detect if running in native iOS wrapper
-   * Checks for PWAShell user agent or webkit message handlers
+   * Requires the native iAP message handler to be present
    */
   private detectNativeMode(): void {
-    const userAgent = navigator.userAgent;
     const hasWebkit = !!(window as any).webkit?.messageHandlers?.iap;
-    this.isNativeMode = userAgent.includes('PWAShell') || hasWebkit;
+    this.isNativeMode = hasWebkit;
   }
 
   /**

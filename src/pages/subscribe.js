@@ -7,7 +7,7 @@ const PLANS = [
     name: 'Monthly',
     price: '$29.00',
     period: '/month',
-    description: 'Perfect for getting started',
+    description: 'Recurring monthly access with full features',
     features: [
       'Unlimited leads',
       'Sales automation',
@@ -21,7 +21,7 @@ const PLANS = [
     name: '60-Day Access',
     price: '$49.00',
     period: 'one time',
-    description: 'Full access for 60 days',
+    description: 'One-time purchase for 60 days (no auto-renew)',
     features: [
       'Unlimited leads',
       'Sales automation',
@@ -102,7 +102,7 @@ export class SubscribePage {
                   `).join('')}
                 </ul>
 
-                <button class="plan-btn" data-product-id="${plan.productId}" style="
+                <button class="plan-btn" data-product-id="${plan.productId}" data-plan-id="${plan.id}" style="
                   width: 100%;
                   padding: 12px 24px;
                   background: #667eea;
@@ -153,10 +153,11 @@ export class SubscribePage {
     planButtons.forEach(btn => {
       btn.addEventListener('click', (e) => {
         const productId = e.target.dataset.productId;
+        const planId = e.target.dataset.planId;
         if (this.isNative) {
           this.handleNativePurchase(productId, container);
         } else {
-          this.handleBrowserPurchase(productId);
+          this.handleBrowserPurchase(planId);
         }
       });
     });
@@ -191,7 +192,7 @@ export class SubscribePage {
 
   handleBrowserPurchase(planId) {
     const shopifyUrl = `${SHOPIFY_STORE}/products/${planId}`;
-    window.open(shopifyUrl, '_blank');
+    window.location.href = shopifyUrl;
   }
 
   async handleRestore(container) {

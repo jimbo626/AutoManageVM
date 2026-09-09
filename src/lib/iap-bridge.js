@@ -8,9 +8,8 @@ class IAPBridge {
   }
 
   detectNativeMode() {
-    const userAgent = navigator.userAgent;
     const hasWebkit = !!(window.webkit?.messageHandlers?.iap);
-    return userAgent.includes('PWAShell') || hasWebkit;
+    return hasWebkit;
   }
 
   setupMessageListener() {
